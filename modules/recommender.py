@@ -492,6 +492,42 @@ def build_recommendation_business_insight(recommendations: pd.DataFrame) -> str:
     )
 
 
+
+
+def build_recommendation_action_summary(recommendations: pd.DataFrame) -> str:
+    """
+    Build a short business action summary for recommendation outputs.
+
+    This is shown in the dashboard so the user understands how to use the
+    recommendations, not only what products were returned.
+    """
+    if recommendations is None or recommendations.empty:
+        return "No recommendation actions are available."
+
+    if "Message" in recommendations.columns:
+        return str(recommendations["Message"].iloc[0])
+
+    product_col = "Product" if "Product" in recommendations.columns else "Description"
+    top_products = recommendations[product_col].head(3).astype(str).tolist() if product_col in recommendations.columns else []
+
+    lines = [
+        "Recommendation Action Summary",
+        "-----------------------------",
+        "- Use the top recommended products as cross-selling opportunities.",
+        "- Place strong matches in email campaigns, product pages, or checkout suggestions.",
+        "- Use popular-product fallback when the customer is new or has limited purchase history.",
+    ]
+
+    if top_products:
+        lines.insert(1, f"- First products to promote: {', '.join(top_products)}.")
+
+    lines.append(
+        "- Expected business value: better product discovery, more relevant offers, "
+        "and potential increase in average order value."
+    )
+
+    return "\n".join(lines)
+
 # ============================================================
 # 10. Visualizations
 # ============================================================
