@@ -308,8 +308,7 @@ def plot_forecast(daily: pd.DataFrame, forecast: pd.DataFrame):
             x=daily["Date"],
             y=daily["Revenue"],
             mode="lines",
-            name="Historical Revenue",
-        )
+            name="Past Sales"        )
     )
 
     fig.add_trace(
@@ -317,7 +316,7 @@ def plot_forecast(daily: pd.DataFrame, forecast: pd.DataFrame):
             x=forecast["Date"],
             y=forecast["Forecast"],
             mode="lines",
-            name="Forecast",
+            name="Predicted Sales"
         )
     )
 
@@ -326,7 +325,7 @@ def plot_forecast(daily: pd.DataFrame, forecast: pd.DataFrame):
             x=forecast["Date"],
             y=forecast["Upper"],
             mode="lines",
-            name="Upper Confidence Bound",
+            name="Upper Expected Range",
             line=dict(width=0),
             showlegend=False,
         )
@@ -337,7 +336,7 @@ def plot_forecast(daily: pd.DataFrame, forecast: pd.DataFrame):
             x=forecast["Date"],
             y=forecast["Lower"],
             mode="lines",
-            name="Lower Confidence Bound",
+           name="Lower Expected Range",
             fill="tonexty",
             line=dict(width=0),
             showlegend=True,
@@ -351,8 +350,8 @@ def plot_forecast(daily: pd.DataFrame, forecast: pd.DataFrame):
     )
 
     fig.update_layout(
-        title=f"Sales Forecast with Approximate Confidence Interval — {model_name}",
-        template="plotly_dark",
+       title="Future Sales Prediction",       
+         template="plotly_dark",
         height=480,
         xaxis_title="Date",
         yaxis_title="Revenue",

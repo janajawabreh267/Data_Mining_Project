@@ -270,7 +270,7 @@ def get_top_anomalies(
 def plot_anomaly_scatter(features: pd.DataFrame):
     features = features.copy()
     features["Type"] = features["IsAnomaly"].map(
-        {True: "Anomaly", False: "Normal"}
+        {True: "Unusual order", False: "Regular Order"}
     )
 
     fig = px.scatter(
@@ -286,7 +286,7 @@ def plot_anomaly_scatter(features: pd.DataFrame):
             "Hour",
             "AmountRatioToCustomerAvg",
         ],
-        title="Transaction Anomaly Detection — Isolation Forest",
+        title="Unusual Order Detection — Smart Pattern Check",
         template="plotly_dark",
         opacity=0.65,
         height=480,
@@ -301,11 +301,11 @@ def plot_anomaly_score_distribution(features: pd.DataFrame):
         x="AnomalyScoreRaw",
         color="IsAnomaly",
         nbins=50,
-        title="Anomaly Score Distribution",
+        title="Unusual Order Score Distribution",
         template="plotly_dark",
         labels={
-            "AnomalyScoreRaw": "Anomaly Score",
-            "IsAnomaly": "Is Anomaly",
+            "AnomalyScoreRaw": "Unusual order Score",
+            "IsAnomaly": "Is Unusual order",
         },
         height=380,
     )
