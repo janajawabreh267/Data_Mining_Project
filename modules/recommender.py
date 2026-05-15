@@ -276,7 +276,7 @@ def recommend_for_customer(
             "Product": scores.index,
             "RecommendationScore": scores.values.round(4),
             "Reason": [
-                "Similar to products previously purchased by this customer"
+                "Recommended because it matches this customer\'s previous buying behavior"
                 for _ in range(len(scores))
             ],
         }
@@ -345,7 +345,7 @@ def recommend_for_basket(
             "Product": scores.index,
             "RecommendationScore": scores.values.round(4),
             "Reason": [
-                "Frequently related to products in the selected basket"
+                "Good add-on product for the selected basket"
                 for _ in range(len(scores))
             ],
         }
@@ -447,16 +447,30 @@ def get_recommender_quality_report(
 
 def build_recommender_explanation() -> str:
     """
-    Return a simple explanation of how recommendations are generated.
+    Return a business-friendly explanation for normal dashboard users.
 
-    Useful in the dashboard and during discussion.
+    Technical terms are intentionally avoided here because the target user can be
+    a store owner or sales manager, not necessarily a data mining specialist.
     """
     return (
-        "The recommender uses item-based collaborative filtering. "
-        "First, it builds a customer-product matrix using purchase history. "
-        "Then it converts purchases to binary interactions to reduce heavy-buyer bias. "
-        "After that, it computes cosine similarity between products. "
-        "Products similar to what a customer already bought are recommended, while already purchased products are excluded."
+        "The system recommends products that customers are likely to buy based on "
+        "previous purchase behavior. It helps the business suggest relevant products, "
+        "create smarter bundles, support cross-selling, and increase average order value."
+    )
+
+
+def build_recommender_technical_explanation() -> str:
+    """
+    Return the technical explanation for instructors or analysts.
+
+    This should be shown inside an Advanced Analytics Details section in app.py.
+    """
+    return (
+        "Technical method: the recommender uses item-based collaborative filtering. "
+        "It builds a customer-product matrix from purchase history, converts purchases "
+        "to binary interactions to reduce heavy-buyer bias, and computes cosine similarity "
+        "between products. Products similar to what a customer already bought are recommended, "
+        "while already purchased products are excluded."
     )
 
 
@@ -494,7 +508,7 @@ def plot_recommendations(recommendations: pd.DataFrame):
         x="RecommendationScore",
         y="Product",
         orientation="h",
-        title="Recommended Products",
+        title="Recommended Products to Promote",
         template="plotly_dark",
         color="RecommendationScore",
         color_continuous_scale="Teal",
@@ -516,7 +530,7 @@ def plot_popular_products(popular: pd.DataFrame):
         x="TotalSold",
         y="Description",
         orientation="h",
-        title="Popular Products Fallback",
+        title="Popular Products Backup Recommendations",
         template="plotly_dark",
         color="Revenue",
         color_continuous_scale="Sunset",
@@ -554,7 +568,7 @@ def plot_recommender_quality(report: dict):
         x="Metric",
         y="Value",
         text="Value",
-        title="Recommender Quality Indicators",
+        title="Technical Recommender Coverage Indicators",
         template="plotly_dark",
         height=400,
         color="Metric",
