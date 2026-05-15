@@ -65,6 +65,7 @@ from modules.recommender import (
     get_popular_products,
     get_recommender_quality_report,
     build_recommender_explanation,
+    build_recommender_technical_explanation,
     build_recommendation_business_insight,
     plot_recommendations,
     plot_popular_products,
@@ -837,52 +838,159 @@ with tabs[1]:
 
 with tabs[2]:
     st.markdown(
-        '<div class="section-header">RFM Customer Segmentation + Clustering Comparison + PCA / SVD</div>',
+        '<div class="section-header">Customer Groups & Business Actions</div>',
         unsafe_allow_html=True,
     )
 
     show_info(
         """
-        Customers are represented using enhanced RFM features:
-        Recency, Frequency, Monetary, AvgOrderValue, ProductDiversity, and CustomerActivityDays.
-        The system compares KMeans, Hierarchical Clustering, and DBSCAN, then selects the best
-        method using clustering metrics.
+        This section groups customers by buying behavior so the business can decide
+        <b>who to reward, who to reactivate, and who needs attention</b>.
+        The system can choose the best grouping strategy automatically, so the user
+        does not need to understand machine learning terms.
         """
     )
 
-    c1, c2, c3, c4 = st.columns(4)
-
-    with c1:
-        n_clusters = st.slider("KMeans / Hierarchical clusters", 2, 8, 4)
-
-    with c2:
-        dbscan_eps_mode = st.selectbox("DBSCAN eps mode", ["Auto", "Manual"])
-
-    with c3:
-        dbscan_eps = st.slider("Manual DBSCAN eps", 0.2, 2.5, 0.8, 0.1)
-
-    with c4:
-        dbscan_min_samples = st.slider("DBSCAN min samples", 3, 25, 8)
-
-    dim_view = st.selectbox(
-        "Dimensionality View",
-        ["PCA & SVD Comparison", "PCA Only", "SVD Only"],
+    c1, c2, c3 = st.columns(3)
+    c1.markdown(
+        """
+        <div class='metric-card'>
+            <div class='metric-value'>🏆 VIP Customers</div>
+            <div class='metric-label'>Identify loyal high-value customers for premium offers</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    c2.markdown(
+        """
+        <div class='metric-card'>
+            <div class='metric-value'>📣 Growth Customers</div>
+            <div class='metric-label'>Find customers who can buy more with targeted campaigns</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    c3.markdown(
+        """
+        <div class='metric-card'>
+            <div class='metric-value'>⚠️ At-Risk Customers</div>
+            <div class='metric-label'>Detect customers who may need reactivation offers</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    selected_method_option = st.selectbox(
-        "Clustering method to apply after comparison",
+    st.markdown(
+        '<div class="section-header">Simple Business Controls</div>',
+        unsafe_allow_html=True,
+    )
+
+    show_info(
+        """
+        Recommended use: keep the strategy on <b>Automatic</b>. Advanced settings are available
+        for the instructor or analyst, but the business user can simply click
+        <b>Analyze Customer Groups</b>.
+        """
+    )
+
+    customer_group_strategy = st.selectbox(
+        "Customer grouping strategy",
         [
-            "Auto-select best by Silhouette",
-            "KMeans",
-            "Hierarchical (Agglomerative)",
-            "DBSCAN",
+            "Automatic: choose the most meaningful customer groups",
+            "Create fixed customer groups",
+            "Detect unusual customer patterns",
+            "Compare all methods for academic analysis",
         ],
     )
 
-    run_seg = st.button("Run and Compare Clustering Methods")
+    show_customer_map = st.selectbox(
+        "Customer map view",
+        [
+            "Show simple customer map",
+            "Show PCA and SVD comparison for analysis",
+            "Hide technical maps",
+        ],
+    )
+
+    # Defaults keep the dashboard easy for business users.
+    n_clusters = 4
+    dbscan_eps_mode = "Auto"
+    dbscan_eps = 0.8
+    dbscan_min_samples = 8
+
+    with st.expander("Advanced Analytics Details"):
+        st.caption(
+            "These settings are useful for the instructor or analyst. "
+            "A normal business user can leave them unchanged."
+        )
+
+        c1, c2, c3, c4 = st.columns(4)
+
+        with c1:
+            n_clusters = st.slider(
+                "Number of customer groups",
+                2,
+                8,
+                4,
+                help="How many customer groups should be created when using fixed grouping methods.",
+            )
+
+        with c2:
+            dbscan_eps_mode = st.selectbox(
+                "Unusual customer sensitivity mode",
+                ["Auto", "Manual"],
+                help="Auto lets the system estimate sensitivity for unusual customer detection.",
+            )
+
+        with c3:
+            dbscan_eps = st.slider(
+                "Sensitivity to unusual customers",
+                0.2,
+                2.5,
+                0.8,
+                0.1,
+                help="Lower values detect stricter unusual patterns; higher values create broader groups.",
+            )
+
+        with c4:
+            dbscan_min_samples = st.slider(
+                "Minimum customers per unusual group",
+                3,
+                25,
+                8,
+                help="Minimum nearby customers needed to treat a pattern as a group instead of noise.",
+            )
+
+        st.markdown(
+            """
+            **Technical methods used behind the scenes:**  
+            - KMeans and Hierarchical clustering create fixed customer groups.  
+            - DBSCAN can detect unusual or noisy customer patterns.  
+            - PCA and SVD help visualize customer groups in a 2D map.  
+            - Silhouette, Davies-Bouldin, and Calinski-Harabasz scores help compare grouping quality.
+            """
+        )
+
+    if customer_group_strategy == "Automatic: choose the most meaningful customer groups":
+        selected_method_option = "Auto-select best by Silhouette"
+    elif customer_group_strategy == "Create fixed customer groups":
+        selected_method_option = "KMeans"
+    elif customer_group_strategy == "Detect unusual customer patterns":
+        selected_method_option = "DBSCAN"
+    else:
+        selected_method_option = "Auto-select best by Silhouette"
+
+    if show_customer_map == "Show simple customer map":
+        dim_view = "PCA Only"
+    elif show_customer_map == "Show PCA and SVD comparison for analysis":
+        dim_view = "PCA & SVD Comparison"
+    else:
+        dim_view = "Hide"
+
+    run_seg = st.button("Analyze Customer Groups")
 
     if run_seg or st.session_state.rfm is not None:
-        with st.spinner("Computing customer features, comparing clustering methods, and projecting with PCA/SVD..."):
+        with st.spinner("Analyzing customer behavior and building customer groups..."):
             rfm = compute_rfm(df)
             rfm_scaled, scaler, used_features = scale_rfm(rfm)
 
@@ -918,66 +1026,63 @@ with tabs[2]:
             st.session_state.clustering_scores = clustering_scores
             st.session_state.best_clustering_method = best_method
 
-        st.success(explain_best_clustering_method(best_method, clustering_scores))
-        st.info(f"Applied method in the dashboard: {chosen_method}")
-
-        st.markdown(
-            '<div class="section-header">Features Used for Clustering</div>',
-            unsafe_allow_html=True,
-        )
-
-        st.write(st.session_state.used_cluster_features)
-
-        st.markdown(
-            '<div class="section-header">Clustering Quality Report</div>',
-            unsafe_allow_html=True,
+        show_success(
+            f"""
+            <b>Customer groups are ready.</b><br>
+            Recommended strategy selected by the system: <b>{best_method}</b>.<br>
+            Applied strategy in this dashboard: <b>{chosen_method}</b>.<br>
+            Use the segment names and suggested actions below to plan marketing campaigns,
+            loyalty rewards, and reactivation offers.
+            """
         )
 
         st.markdown(
-            f"<div class='info-box'>{explain_clustering_metrics()}</div>",
+            '<div class="section-header">Customer Segment Distribution</div>',
             unsafe_allow_html=True,
         )
 
-        themed_plotly_chart(plot_clustering_comparison(clustering_scores), width="stretch")
-        st.dataframe(clustering_scores, width="stretch")
-
-        a, b = st.columns(2)
-
-        with a:
-            themed_plotly_chart(plot_segment_distribution(rfm_clustered), width="stretch")
-
-        with b:
-            themed_plotly_chart(plot_elbow(k_range, inertias, silhouettes), width="stretch")
-
-        if dim_view in ["PCA & SVD Comparison", "PCA Only"]:
-            themed_plotly_chart(plot_pca_clusters(pca_df, explained_var), width="stretch")
-
-        if dim_view in ["PCA & SVD Comparison", "SVD Only"]:
-            themed_plotly_chart(plot_svd_clusters(svd_df, svd_explained), width="stretch")
-
-        if dim_view == "PCA & SVD Comparison":
-            st.markdown(
-                '<div class="section-header">PCA vs SVD Explained Variance Comparison</div>',
-                unsafe_allow_html=True,
-            )
-            st.dataframe(comparison_df, width="stretch")
-
-            show_info(
-                """
-                PCA and SVD are both dimensionality reduction methods.
-                PCA is commonly used to visualize customer segments by preserving variance.
-                SVD is shown as an alternative projection for comparison.
-                """
-            )
-
-        themed_plotly_chart(plot_cluster_profiles(rfm_clustered), width="stretch")
+        themed_plotly_chart(plot_segment_distribution(rfm_clustered), width="stretch")
 
         st.markdown(
-            '<div class="section-header">Business Interpretation of Segments</div>',
+            '<div class="section-header">What should the business do?</div>',
             unsafe_allow_html=True,
         )
 
         st.text(build_segmentation_insights(rfm_clustered))
+
+        st.markdown(
+            '<div class="section-header">Average Customer Behavior by Segment</div>',
+            unsafe_allow_html=True,
+        )
+
+        show_info(
+            """
+            This chart explains how each customer group behaves on average.
+            Use it to understand which groups spend more, buy more often, or have been inactive longer.
+            """
+        )
+        themed_plotly_chart(plot_cluster_profiles(rfm_clustered), width="stretch")
+
+        if dim_view in ["PCA & SVD Comparison", "PCA Only"]:
+            st.markdown(
+                '<div class="section-header">Customer Map</div>',
+                unsafe_allow_html=True,
+            )
+            show_info(
+                """
+                This map gives a visual overview of customer groups.
+                Customers close together have similar buying behavior.
+                """
+            )
+            themed_plotly_chart(plot_pca_clusters(pca_df, explained_var), width="stretch")
+
+        if dim_view == "PCA & SVD Comparison":
+            themed_plotly_chart(plot_svd_clusters(svd_df, svd_explained), width="stretch")
+
+        st.markdown(
+            '<div class="section-header">Customer List for Campaign Planning</div>',
+            unsafe_allow_html=True,
+        )
 
         st.dataframe(
             rfm_clustered.sort_values("Monetary", ascending=False),
@@ -985,8 +1090,27 @@ with tabs[2]:
             height=330,
         )
 
+        with st.expander("Advanced Analytics Details"):
+            st.markdown("### Features used by the customer grouping engine")
+            st.write(st.session_state.used_cluster_features)
+
+            st.markdown("### Technical quality report")
+            st.markdown(
+                f"<div class='info-box'>{explain_clustering_metrics()}</div>",
+                unsafe_allow_html=True,
+            )
+
+            themed_plotly_chart(plot_clustering_comparison(clustering_scores), width="stretch")
+            st.dataframe(clustering_scores, width="stretch")
+
+            themed_plotly_chart(plot_elbow(k_range, inertias, silhouettes), width="stretch")
+
+            if dim_view == "PCA & SVD Comparison":
+                st.markdown("### PCA vs SVD explained variance comparison")
+                st.dataframe(comparison_df, width="stretch")
+
     else:
-        st.info("Click Run and Compare Clustering Methods to evaluate KMeans, Hierarchical, and DBSCAN.")
+        st.info("Click Analyze Customer Groups to generate business-friendly customer segments.")
 
 
 # ============================================================
@@ -1174,14 +1298,43 @@ with tabs[5]:
 
 with tabs[6]:
     st.markdown(
-        '<div class="section-header">Smart Product Recommendation System</div>',
+        '<div class="section-header">Smart Product Recommendations</div>',
         unsafe_allow_html=True,
     )
 
     show_info(build_recommender_explanation())
 
+    r1, r2, r3 = st.columns(3)
+    r1.markdown(
+        """
+        <div class='metric-card'>
+            <div class='metric-value'>🛒 What to recommend?</div>
+            <div class='metric-label'>Suggest products the customer is likely to buy next</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    r2.markdown(
+        """
+        <div class='metric-card'>
+            <div class='metric-value'>📦 What to bundle?</div>
+            <div class='metric-label'>Find products that fit well with the current basket</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    r3.markdown(
+        """
+        <div class='metric-card'>
+            <div class='metric-value'>📈 How to grow sales?</div>
+            <div class='metric-label'>Support cross-selling and increase average order value</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     if st.session_state.similarity_df is None:
-        with st.spinner("Building item-based recommendation engine..."):
+        with st.spinner("Preparing product recommendations from purchase history..."):
             matrix = build_user_item_matrix(df)
             product_stats = get_product_stats(df)
             similarity_df = compute_item_similarity(matrix)
@@ -1194,39 +1347,32 @@ with tabs[6]:
     similarity_df = st.session_state.similarity_df
     product_stats = st.session_state.product_stats
 
-    st.markdown(
-        '<div class="section-header">Recommender Quality Report</div>',
-        unsafe_allow_html=True,
-    )
-
-    quality_report = get_recommender_quality_report(matrix, similarity_df)
-
-    q1, q2, q3, q4, q5 = st.columns(5)
-
-    metric_card(q1, "Customers", f"{quality_report['customers_in_matrix']:,}")
-    metric_card(q2, "Products", f"{quality_report['products_in_matrix']:,}")
-    metric_card(q3, "Density", f"{quality_report['matrix_density']}")
-    metric_card(q4, "Avg Products / Customer", f"{quality_report['avg_products_per_customer']}")
-    metric_card(q5, "Avg Similarity", f"{quality_report['avg_similarity']}")
-
-    themed_plotly_chart(plot_recommender_quality(quality_report), width="stretch")
-
     rec_mode = st.radio(
-        "Recommendation Mode",
-        ["Customer-based recommendation", "Basket-based recommendation"],
+        "Choose recommendation service",
+        [
+            "Recommend products for a specific customer",
+            "Recommend add-on products for a basket",
+        ],
         horizontal=True,
     )
 
-    if rec_mode == "Customer-based recommendation":
+    if rec_mode == "Recommend products for a specific customer":
+        show_info(
+            """
+            Use this when you know the customer ID. The system checks the customer purchase
+            history and suggests products they are likely to buy next.
+            """
+        )
+
         c1, c2 = st.columns([2, 1])
 
         with c1:
             customer_id = st.text_input("Customer ID", placeholder="Example: 17850")
 
         with c2:
-            top_n = st.slider("Top N", 5, 20, 10, key="customer_top_n")
+            top_n = st.slider("Number of recommendations", 5, 20, 10, key="customer_top_n")
 
-        if st.button("Get Customer Recommendations") and customer_id:
+        if st.button("Get Product Recommendations") and customer_id:
             recs = recommend_for_customer(
                 customer_id.strip(),
                 matrix,
@@ -1237,27 +1383,45 @@ with tabs[6]:
 
             if "Message" in recs.columns:
                 st.warning(recs["Message"].iloc[0])
+                show_info(
+                    """
+                    This customer does not have enough purchase history in the dataset.
+                    The system will show popular products instead as a safe fallback.
+                    """
+                )
 
                 popular = get_popular_products(df, top_n)
                 st.dataframe(popular, width="stretch")
                 themed_plotly_chart(plot_popular_products(popular), width="stretch")
 
             else:
-                themed_plotly_chart(plot_recommendations(recs), width="stretch")
-                st.dataframe(recs, width="stretch")
                 show_success(build_recommendation_business_insight(recs))
+                themed_plotly_chart(plot_recommendations(recs), width="stretch")
+
+                st.markdown(
+                    '<div class="section-header">Recommendation List for Sales Team</div>',
+                    unsafe_allow_html=True,
+                )
+                st.dataframe(recs, width="stretch")
 
     else:
+        show_info(
+            """
+            Use this when a customer already has products in the basket.
+            The system suggests add-on products that can be promoted before checkout.
+            """
+        )
+
         product_options = sorted(similarity_df.columns.tolist())
 
         selected_products = st.multiselect(
-            "Select products currently in the basket",
+            "Products currently in the basket",
             product_options,
         )
 
-        top_n = st.slider("Top N", 5, 20, 10, key="basket_top_n")
+        top_n = st.slider("Number of add-on recommendations", 5, 20, 10, key="basket_top_n")
 
-        if st.button("Get Basket Recommendations"):
+        if st.button("Suggest Add-on Products"):
             basket_recs = recommend_for_basket(
                 selected_products,
                 similarity_df,
@@ -1268,19 +1432,48 @@ with tabs[6]:
             if "Message" in basket_recs.columns:
                 st.warning(basket_recs["Message"].iloc[0])
             else:
-                themed_plotly_chart(plot_recommendations(basket_recs), width="stretch")
-                st.dataframe(basket_recs, width="stretch")
                 show_success(build_recommendation_business_insight(basket_recs))
+                themed_plotly_chart(plot_recommendations(basket_recs), width="stretch")
+
+                st.markdown(
+                    '<div class="section-header">Suggested Add-on Products</div>',
+                    unsafe_allow_html=True,
+                )
+                st.dataframe(basket_recs, width="stretch")
 
     st.markdown(
-        '<div class="section-header">Popular Products Fallback</div>',
+        '<div class="section-header">Popular Products Backup Plan</div>',
         unsafe_allow_html=True,
+    )
+
+    show_info(
+        """
+        If a customer is new or has no history, the system can still recommend popular products.
+        This makes the recommendation service useful even in cold-start cases.
+        """
     )
 
     popular = get_popular_products(df, 15)
 
     themed_plotly_chart(plot_popular_products(popular), width="stretch")
     st.dataframe(popular, width="stretch")
+
+    with st.expander("Advanced Analytics Details"):
+        st.markdown("### Technical recommender explanation")
+        st.write(build_recommender_technical_explanation())
+
+        st.markdown("### Recommender coverage indicators")
+        quality_report = get_recommender_quality_report(matrix, similarity_df)
+
+        q1, q2, q3, q4, q5 = st.columns(5)
+
+        metric_card(q1, "Customers", f"{quality_report['customers_in_matrix']:,}")
+        metric_card(q2, "Products", f"{quality_report['products_in_matrix']:,}")
+        metric_card(q3, "Density", f"{quality_report['matrix_density']}")
+        metric_card(q4, "Avg Products / Customer", f"{quality_report['avg_products_per_customer']}")
+        metric_card(q5, "Avg Similarity", f"{quality_report['avg_similarity']}")
+
+        themed_plotly_chart(plot_recommender_quality(quality_report), width="stretch")
 
 
 # ============================================================
